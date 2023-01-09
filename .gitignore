@@ -1,0 +1,22 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Laravel / PHP
+/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+/storage/*.key
+/storage/logs/
+/public/hot
+/public/storage
+*.log
+.phpunit.result.cache
+
+# Local temporary files
+/tmp/
