@@ -1,0 +1,709 @@
+// AFV UI package partial: planning (S9). Owned by one package agent; compiled by S9.
+// Screens: budgets (list, create), budget editor (spreadsheet grid), budget vs actual (variance), forecasts.
+
+// ---------------------------------------------------------------- shared
+.dbk-planning-caption {
+    font-size: var(--dbk-fs-base);
+    font-weight: 600;
+    color: var(--dbk-text);
+    margin: 0 0 var(--dbk-space-3);
+}
+
+.dbk-planning-code {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--dbk-text-muted);
+    margin-right: 8px;
+}
+
+.dbk-planning-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--dbk-space-3) var(--dbk-space-6);
+    margin: 0;
+
+    > div { min-width: 0; }
+
+    .dbk-planning-meta-label {
+        display: block;
+        font-size: var(--dbk-fs-xs);
+        color: var(--dbk-text-muted);
+        margin-bottom: 2px;
+    }
+
+    .dbk-planning-meta-value {
+        font-size: var(--dbk-fs-base);
+        font-weight: 600;
+        color: var(--dbk-text);
+    }
+}
+
+.dbk-planning-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--dbk-space-2);
+    margin-top: var(--dbk-space-4);
+    padding: var(--dbk-space-3) var(--dbk-space-4);
+    border-radius: var(--dbk-radius-sm);
+    background: var(--dbk-accent-soft);
+    color: var(--dbk-text);
+    font-size: var(--dbk-fs-sm);
+
+    i { color: var(--dbk-accent); margin-top: 3px; }
+
+    &.is-warning {
+        background: var(--dbk-warning-soft);
+        i { color: var(--dbk-warning); }
+    }
+}
+
+.dbk-planning-actions {
+    display: inline-flex;
+    gap: 4px;
+    justify-content: flex-end;
+    white-space: nowrap;
+
+    .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--dbk-radius-sm);
+        font-size: 13px;
+    }
+}
+
+.dbk-planning-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: 0;
+    flex: 0 0 auto;
+}
+
+.dbk-planning-delta {
+    display: block;
+    font-size: var(--dbk-fs-xs);
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--dbk-text-muted);
+
+    &.is-good { color: var(--dbk-good); }
+    &.is-bad { color: var(--dbk-bad); }
+}
+
+// ---------------------------------------------------------------- budgets list
+.dbk-planning-budgets {
+    .dbk-planning-name {
+        color: var(--dbk-accent);
+        font-weight: 600;
+
+        &:hover { text-decoration: underline; }
+    }
+
+    .dbk-planning-note {
+        font-size: var(--dbk-fs-xs);
+        color: var(--dbk-text-muted);
+        max-width: 260px;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dbk-table td { white-space: nowrap; }
+    .dbk-table td:first-child { white-space: normal; min-width: 220px; }
+
+    // S12: the row actions stay visible at the right edge when the wide table scrolls
+    .dbk-planning-budgets-table .dbk-planning-col-actions {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+        background-color: var(--dbk-surface);
+        box-shadow: -1px 0 0 var(--dbk-border);
+    }
+
+    .dbk-planning-budgets-table thead .dbk-planning-col-actions { z-index: 3; background-color: var(--dbk-surface-2); }
+    .dbk-planning-budgets-table tbody tr:hover > .dbk-planning-col-actions { background-color: var(--dbk-surface-2); }
+
+    @media (max-width: 575.98px) {
+        .dbk-table td:first-child { min-width: 150px; max-width: 170px; }
+        .dbk-planning-note { max-width: 150px; }
+        // on a phone the sticky name + sticky actions would leave no room for the numbers
+        .dbk-planning-budgets-table .dbk-planning-col-actions { position: static; box-shadow: none; }
+    }
+}
+
+.dbk-planning-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--dbk-space-3);
+    padding: var(--dbk-space-3) var(--dbk-space-5);
+    border-bottom: 1px solid var(--dbk-border);
+
+    .dbk-filter {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 0 1 220px;
+        min-width: 150px;
+
+        > label {
+            font-size: var(--dbk-fs-xs);
+            font-weight: 500;
+            color: var(--dbk-text-muted);
+            margin: 0;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        padding: var(--dbk-space-3) var(--dbk-space-4);
+
+        .dbk-filter { flex-basis: 100%; }
+    }
+}
+
+// ---------------------------------------------------------------- create budget
+.dbk-start-option {
+    border: 1px solid var(--dbk-border);
+    border-radius: var(--dbk-radius);
+    padding: var(--dbk-space-3) var(--dbk-space-4);
+    margin-bottom: var(--dbk-space-3);
+    cursor: pointer;
+    background: var(--dbk-surface);
+    transition: border-color .15s, background-color .15s, box-shadow .15s;
+
+    &:hover { border-color: var(--dbk-border-strong); }
+
+    &.active {
+        border-color: var(--dbk-accent);
+        background: var(--dbk-accent-soft);
+        box-shadow: 0 0 0 1px var(--dbk-accent) inset;
+    }
+
+    .custom-control-label {
+        font-size: var(--dbk-fs-base);
+        font-weight: 600;
+        color: var(--dbk-text);
+    }
+
+    .dbk-start-help {
+        margin-left: 24px;
+        font-size: var(--dbk-fs-sm);
+        color: var(--dbk-text-muted);
+    }
+
+    .dbk-start-fields {
+        display: none;
+        margin: var(--dbk-space-3) 0 0 24px;
+        padding-top: var(--dbk-space-3);
+        border-top: 1px dashed var(--dbk-border-strong);
+    }
+
+    &.active .dbk-start-fields { display: block; }
+
+    @media (max-width: 575.98px) {
+        .dbk-start-help, .dbk-start-fields { margin-left: 0; }
+    }
+}
+
+.dbk-planning-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--dbk-space-3);
+    margin-bottom: var(--dbk-space-6);
+
+    > .mr-3 { margin-right: 0 !important; }
+
+    @media (max-width: 575.98px) {
+        > * { flex: 1 1 auto; justify-content: center; }
+    }
+}
+
+// ---------------------------------------------------------------- budget editor (spreadsheet grid)
+.dbk-planning-editor-wrap {
+    overflow: auto;
+    max-height: calc(100vh - 230px);
+    min-height: 260px;
+    position: relative;
+    border-radius: 0 0 var(--dbk-radius) var(--dbk-radius);
+    -webkit-overflow-scrolling: touch;
+
+    @media (max-width: 767.98px) { max-height: 70vh; }
+
+    // S12 (WCAG 2.4.11): scrolling to a focused cell keeps it clear of the sticky header and the frozen columns
+    scroll-padding: 44px 12px 12px 404px;
+
+    &.be-readonly { scroll-padding-left: 292px; }
+
+    @media (max-width: 767.98px) {
+        scroll-padding-left: 192px;
+        &.be-readonly { scroll-padding-left: 192px; }
+    }
+}
+
+.be-help {
+    margin-top: var(--dbk-space-3);
+    font-size: var(--dbk-fs-xs);
+    color: var(--dbk-text-muted);
+    line-height: 18px;
+
+    // keyboard shortcuts do not apply on a phone
+    @media (max-width: 767.98px) { display: none; }
+}
+
+// error summary above the grid (count of cells that need attention + jump to the first)
+.be-errors {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 14px;
+    font-size: var(--dbk-fs-sm);
+    color: var(--dbk-bad);
+    background: var(--dbk-bad-soft);
+    border: 1px solid var(--dbk-bad);
+    border-radius: var(--dbk-radius-sm);
+
+    &[hidden] { display: none; }
+
+    .btn-link { color: var(--dbk-bad); font-size: var(--dbk-fs-sm); font-weight: 600; text-decoration: underline; }
+}
+
+.be-table {
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--dbk-fs-sm);
+    color: var(--dbk-text);
+    font-variant-numeric: tabular-nums;
+
+    th, td {
+        background: var(--dbk-surface);
+        border-bottom: 1px solid var(--dbk-border);
+        padding: 2px 4px;
+        vertical-align: middle;
+        height: 36px;
+    }
+
+    // sticky month header
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: var(--dbk-surface-2);
+        color: var(--dbk-text-muted);
+        font-size: var(--dbk-fs-xs);
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--dbk-border-strong);
+    }
+
+    // sticky first columns (account, row actions)
+    .be-sticky {
+        position: sticky;
+        z-index: 2;
+    }
+
+    thead .be-sticky { z-index: 4; }
+
+    .be-name {
+        left: 0;
+        min-width: 280px;
+        max-width: 280px;
+        width: 280px;
+        padding: 4px 12px 4px 16px;
+        line-height: 18px;
+    }
+
+    .be-actions {
+        left: 280px;
+        min-width: 112px;
+        width: 112px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    // divider after the frozen block
+    .be-actions, &.be-ro-grid .be-name {
+        box-shadow: inset -1px 0 0 var(--dbk-border-strong);
+    }
+
+    .be-code {
+        font-weight: 600;
+        color: var(--dbk-text-muted);
+        margin-right: 6px;
+    }
+
+    .be-cell {
+        min-width: 92px;
+        width: 92px;
+    }
+
+    .be-input {
+        width: 100%;
+        height: 30px;
+        padding: 4px 8px;
+        text-align: right;
+        font-size: var(--dbk-fs-sm);
+        font-variant-numeric: tabular-nums;
+        color: var(--dbk-text);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        transition: border-color .12s, box-shadow .12s, background-color .12s;
+
+        &:hover { border-color: var(--dbk-border-strong); background: var(--dbk-surface); }
+
+        &:focus {
+            outline: 0;
+            border-color: var(--dbk-accent);
+            background: var(--dbk-surface);
+            box-shadow: var(--dbk-focus-ring);
+        }
+
+        &.be-invalid {
+            border-color: var(--dbk-bad);
+            background: var(--dbk-bad-soft);
+            color: var(--dbk-bad);
+        }
+    }
+
+    .be-ro {
+        display: block;
+        text-align: right;
+        padding: 4px 8px;
+        color: var(--dbk-text);
+
+        &.be-zero { color: var(--dbk-text-muted); }
+    }
+
+    .be-num {
+        text-align: right;
+        white-space: nowrap;
+        padding: 4px 12px !important;
+    }
+
+    th.text-right { text-align: right; }
+
+    // row total column + last-year column
+    .be-total {
+        min-width: 116px;
+        font-weight: 600;
+        background: var(--dbk-surface-2);
+        box-shadow: inset 1px 0 0 var(--dbk-border-strong);
+    }
+
+    thead .be-total { color: var(--dbk-text-2); }
+
+    .be-ly {
+        min-width: 112px;
+        color: var(--dbk-text-muted);
+        box-shadow: inset 1px 0 0 var(--dbk-border);
+    }
+
+    // active row / cell
+    tbody tr.be-row:hover > td { background: var(--dbk-surface-2); }
+    tbody tr.be-row:hover > td.be-total { background: var(--dbk-neutral-soft); }
+    tbody tr.be-row:focus-within > td { background: var(--dbk-accent-soft); }
+    tbody tr.be-row:focus-within > td.be-name { box-shadow: inset 3px 0 0 var(--dbk-accent); }
+
+    .be-split .be-name { color: var(--dbk-text-2); }
+
+    .be-actions .btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        line-height: 26px;
+        font-size: 12px;
+        border-radius: var(--dbk-radius-sm);
+        color: var(--dbk-text-2);
+        background: var(--dbk-surface);
+        border-color: var(--dbk-border) !important;
+
+        &:hover { color: var(--dbk-accent); border-color: var(--dbk-accent) !important; }
+        &:focus-visible { outline: 0; box-shadow: var(--dbk-focus-ring); }
+    }
+
+    // group rows (sections), subtotals, profit
+    .be-section td {
+        background: var(--dbk-surface-2);
+        color: var(--dbk-text);
+        font-weight: 700;
+        font-size: var(--dbk-fs-xs);
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--dbk-border-strong);
+    }
+
+    .be-section td { padding: 0; }
+
+    .be-section-toggle {
+        position: sticky;
+        left: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 16px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        cursor: pointer;
+
+        .fa { font-size: 11px; color: var(--dbk-text-muted); transition: transform .15s; }
+        &:hover .be-section-label { text-decoration: underline; }
+        &:focus { outline: 0; }
+        &:focus-visible { box-shadow: var(--dbk-focus-ring); border-radius: var(--dbk-radius-sm); }
+    }
+
+    .be-collapsed .be-section-toggle .fa { transform: rotate(-90deg); }
+
+    .be-section-count {
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--dbk-text-muted);
+    }
+
+    .be-inactive {
+        margin-left: 6px;
+        font-size: 11px;
+        padding: 0 6px;
+        color: var(--dbk-text-2);
+        background: var(--dbk-neutral-soft);
+    }
+
+    // autosave state of a cell (saving / saved / error) at the left of the amount
+    td.be-cell { position: relative; }
+    .be-cs { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; line-height: 1; pointer-events: none; z-index: 1; }
+    .be-cs-saving { color: var(--dbk-text-muted); }
+    .be-cs-saved { color: var(--dbk-good); }
+    .be-cs-error { color: var(--dbk-bad); pointer-events: auto; cursor: help; }
+
+    .be-subtotal td {
+        background: var(--dbk-surface-2);
+        font-weight: 700;
+        border-top: 1px solid var(--dbk-border-strong);
+    }
+
+    .be-subtotal td.be-total { background: var(--dbk-neutral-soft); }
+
+    .be-profit td {
+        background: var(--dbk-accent-soft);
+        font-weight: 700;
+        border-top: 2px solid var(--dbk-accent);
+        border-bottom: 0;
+        height: 42px;
+    }
+
+    .be-neg { color: var(--dbk-bad); }
+    .be-pos { color: var(--dbk-good); }
+}
+
+#be-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--dbk-fs-xs);
+    font-weight: 600;
+    line-height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+
+    &.badge-light { color: var(--dbk-good); background: var(--dbk-good-soft); }
+    &.badge-warning { color: var(--dbk-warning); background: var(--dbk-warning-soft); }
+    &.badge-danger { color: var(--dbk-bad); background: var(--dbk-bad-soft); }
+    &.is-plain { color: var(--dbk-text-2); background: var(--dbk-neutral-soft); }
+}
+
+.dbk-planning-editor-hint {
+    font-size: var(--dbk-fs-xs);
+    color: var(--dbk-text-muted);
+    display: none;
+
+    @media (max-width: 991.98px) { display: block; }
+}
+
+@media (max-width: 767.98px) {
+    .be-table {
+        .be-name { min-width: 180px; max-width: 180px; width: 180px; padding-left: 12px; box-shadow: inset -1px 0 0 var(--dbk-border-strong); }
+        // S12: the row buttons are hidden on a phone (reading + typing in cells only), so the months get the room
+        .be-actions { display: none; }
+        .be-cell { min-width: 88px; }
+    }
+}
+
+// ---------------------------------------------------------------- variance
+.dbk-planning-variance {
+    @media (max-width: 575.98px) {
+        .dbk-kpi-grid.dbk-kpi-grid--3 { grid-template-columns: minmax(0, 1fr); }
+        .dbk-card-header { flex-wrap: wrap; }
+        .dbk-card-actions { width: 100%; }
+        .dbk-card-actions .dbk-segmented { width: 100%; }
+        .dbk-card-actions .dbk-segmented > button { flex: 1 1 auto; }
+    }
+
+    .dbk-table td:first-child { white-space: normal; min-width: 220px; }
+
+    .dbk-table .dbk-row-total.is-profit > *,
+    .dbk-table.dbk-table--sticky-first .dbk-row-total.is-profit > :first-child {
+        background: var(--dbk-accent-soft);
+        border-top-color: var(--dbk-accent);
+    }
+}
+
+.dbk-planning-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--dbk-space-2) var(--dbk-space-4);
+    font-size: var(--dbk-fs-xs);
+    color: var(--dbk-text-muted);
+    margin-bottom: var(--dbk-space-6);
+}
+
+.dbk-planning-readonly-field {
+    display: flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--dbk-border);
+    border-radius: var(--dbk-radius-sm);
+    background: var(--dbk-surface-2);
+    color: var(--dbk-text-2);
+    font-size: var(--dbk-fs-sm);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+// ---------------------------------------------------------------- forecasts
+.dbk-planning-forecasts {
+    .dbk-filters .dbk-filter { max-width: none; }
+
+    .dbk-filter-wide { flex: 2 1 300px; }
+}
+
+.dbk-planning-scenario-box {
+    border: 1px solid var(--dbk-border);
+    border-radius: var(--dbk-radius);
+    padding: var(--dbk-space-3) var(--dbk-space-4);
+    height: 100%;
+
+    .dbk-planning-scenario-title {
+        display: flex;
+        align-items: center;
+        font-size: var(--dbk-fs-sm);
+        font-weight: 600;
+        color: var(--dbk-text);
+        margin-bottom: var(--dbk-space-2);
+    }
+}
+
+.dbk-planning-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--dbk-space-3);
+    margin-bottom: var(--dbk-space-4);
+
+    .dbk-segmented .nav-link { border-radius: 5px; }
+    .dbk-segmented .nav-link i { margin-right: 4px; }
+
+    @media (max-width: 575.98px) {
+        .dbk-segmented { flex: 1 1 100%; }
+        .dbk-segmented > * { flex: 1 1 auto; text-align: center; }
+        > .btn { flex: 1 1 100%; justify-content: center; }
+    }
+}
+
+.dbk-planning-scroll {
+    max-height: 440px;
+    overflow-y: auto;
+
+    td:first-child { white-space: nowrap; }
+}
+
+.dbk-row-forecast > td { background: var(--dbk-warning-soft); }
+.dbk-table tbody tr.dbk-row-forecast:hover > td { background: var(--dbk-warning-soft); }
+
+.dbk-planning-footnote {
+    font-size: var(--dbk-fs-xs);
+    color: var(--dbk-text-muted);
+    padding: var(--dbk-space-3) var(--dbk-space-5);
+    border-top: 1px solid var(--dbk-border);
+}
+
+.dbk-saved-item {
+    border: 1px solid var(--dbk-border);
+    border-radius: var(--dbk-radius);
+    background: var(--dbk-surface);
+    padding: var(--dbk-space-3);
+    margin-bottom: var(--dbk-space-2);
+    transition: border-color .15s, background-color .15s;
+
+    &:hover { background: var(--dbk-surface-2); }
+
+    .dbk-saved-name {
+        font-size: var(--dbk-fs-sm);
+        font-weight: 600;
+        color: var(--dbk-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dbk-saved-metric { font-size: var(--dbk-fs-xs); color: var(--dbk-text-2); }
+    .dbk-saved-meta { font-size: var(--dbk-fs-xs); color: var(--dbk-text-muted); line-height: 16px; }
+}
+
+.dbk-saved-active {
+    border-color: var(--dbk-accent);
+    background: var(--dbk-accent-soft);
+    box-shadow: inset 3px 0 0 var(--dbk-accent);
+
+    &:hover { background: var(--dbk-accent-soft); }
+}
+
+.dbk-saved-item .badge.dbk-badge {
+    padding: 0 8px;
+    font-size: var(--dbk-fs-xs);
+    line-height: 20px;
+    border-radius: 999px;
+}
+
+// AFV dark theme forces borders/backgrounds on input, tbody and .badge-light with !important
+body.dark-theme {
+    .be-table {
+        tbody { border: 0 !important; }
+
+        .be-input {
+            border-color: transparent !important;
+            background-color: transparent !important;
+            color: var(--dbk-text) !important;
+
+            &:hover { border-color: var(--dbk-border-strong) !important; background-color: var(--dbk-surface) !important; }
+            &:focus { border-color: var(--dbk-accent) !important; background-color: var(--dbk-surface) !important; }
+            &.be-invalid { border-color: var(--dbk-bad) !important; background-color: var(--dbk-bad-soft) !important; color: var(--dbk-bad) !important; }
+        }
+    }
+
+    #be-state.badge-light { color: var(--dbk-good) !important; background-color: var(--dbk-good-soft) !important; }
+    #be-state.badge-warning { color: var(--dbk-warning) !important; background-color: var(--dbk-warning-soft) !important; }
+    #be-state.badge-danger { color: var(--dbk-bad) !important; background-color: var(--dbk-bad-soft) !important; }
+}
