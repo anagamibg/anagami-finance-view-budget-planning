@@ -1,0 +1,87 @@
+// AFV UI partial: budget vs actual (variance) and forecasts — S12 audit (A11).
+// The base planning styles stay in _planning.scss; this file only adds what the S12 changes need.
+
+// ---------------------------------------------------------------- variance
+.dbk-planning-variance {
+    .dbk-variance-notice {
+        margin-top: 0;
+        margin-bottom: var(--dbk-space-3);
+    }
+
+    .dbk-variance-chart-hint {
+        margin: var(--dbk-space-3) 0 0;
+        font-size: var(--dbk-fs-xs);
+        color: var(--dbk-text-muted);
+    }
+
+    .dbk-variance-top-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--dbk-space-2) var(--dbk-space-4);
+        margin-top: var(--dbk-space-3);
+        font-size: var(--dbk-fs-xs);
+        color: var(--dbk-text-2);
+
+        span { display: inline-flex; align-items: center; }
+
+        i {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+
+            &.is-good { background: var(--dbk-good); }
+            &.is-bad { background: var(--dbk-bad); }
+        }
+    }
+
+    // mobile: a narrower sticky account column, so that the amounts are visible next to it
+    @media (max-width: 575.98px) {
+        .variance-table td:first-child,
+        .variance-table th:first-child {
+            min-width: 150px;
+            max-width: 170px;
+            white-space: normal;
+        }
+
+        .variance-table .dbk-planning-code { display: block; margin-right: 0; }
+    }
+}
+
+// ---------------------------------------------------------------- forecasts
+.dbk-forecast-explain {
+    padding: var(--dbk-space-3) var(--dbk-space-5) var(--dbk-space-4);
+    border-top: 1px solid var(--dbk-border);
+    font-size: var(--dbk-fs-sm);
+    line-height: 19px;
+    color: var(--dbk-text-2);
+
+    i {
+        color: var(--dbk-warning);
+        margin-right: 6px;
+    }
+
+    strong { color: var(--dbk-text); }
+
+    &.is-inset {
+        padding: var(--dbk-space-3) 0 0;
+        margin-top: var(--dbk-space-3);
+    }
+
+    @media (max-width: 575.98px) {
+        padding: var(--dbk-space-3) var(--dbk-space-4);
+
+        &.is-inset { padding: var(--dbk-space-3) 0 0; }
+    }
+}
+
+// scenario summary: let the long header and the "+27 395 € vs base" lines wrap, so the cash column fits in the card
+#scenario-summary-table {
+    th { white-space: normal; vertical-align: bottom; }
+
+    td.num .dbk-planning-delta { white-space: normal; }
+
+    th.num:last-child { min-width: 150px; }
+}
